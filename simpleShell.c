@@ -42,7 +42,7 @@ void remove_and(char** args);
 void evaluate_expression(char** args);
 void execute_export(char** args);
 void execute_cd(string args);
-void execute_echo(string args);
+void execute_echo(char** args);
 void add_user(string key, string value);
 struct my_struct *find_user(string key);
 int exit_status=0;
@@ -157,6 +157,28 @@ char** parse_input()
         }
     }
     args[i] = NULL;
+     // if command is echo, split quoted args by space
+    if (args[0] != NULL && strcmp(args[0], "echo") == 0)
+    {
+        static string echo_args[100];
+        echo_args[0] = args[0]; // keep "echo"
+        int k = 1;
+        int j = 1;
+        while (args[j] != NULL)
+        {
+            // split args[j] by spaces
+            char* token = strtok(args[j], " ");
+            while (token != NULL)
+            {
+                echo_args[k++] = token;
+                token = strtok(NULL, " ");
+            }
+            j++;
+        }
+        echo_args[k] = NULL;
+        return echo_args;
+    }
+    
     return args;
 }
 
@@ -231,7 +253,7 @@ void execute_builtin(char** args)
             break;
 
         case Echo:
-            execute_echo(args[1]);
+            execute_echo(args);
             break;
 
         case Export:
@@ -354,9 +376,15 @@ void execute_cd(string args)
 
 
 
-void execute_echo(string args)
+void execute_echo(char** args)
 {
-    printf("%s\n", args);
+    int i=1;
+    while(args[i]!=NULL)
+    {
+        printf("%s ", args[i]);
+        i++;
+    }
+    printf("\n");
 }
 
 
