@@ -61,7 +61,7 @@ int main() {
 //finished
 void setup_environment()
 {
-   // chdir(getenv("HOME"));
+   chdir(getenv("HOME"));
 }
 
 
@@ -158,7 +158,7 @@ char** parse_input()
     }
     args[i] = NULL;
      // if command is echo, split quoted args by space
-    if (args[0] != NULL && strcmp(args[0], "echo") == 0)
+    if (args[0] != NULL && (strcmp(args[0], "echo") == 0||strcmp(args[0], "ls") == 0))
     {
         static string echo_args[100];
         echo_args[0] = args[0]; // keep "echo"
@@ -336,7 +336,7 @@ void evaluate_expression(char** args)
     {
         if (check_$(args[i]))
         {
-            string value = find_user(args[i]+1) ? find_user(args[i]+1)->value : NULL; // remove the $ and look up the value
+           string value = find_user(args[i]+1) ? find_user(args[i]+1)->value : getenv(args[i]+1);
             if (value != NULL)
                 args[i] = value;
             else
@@ -397,10 +397,11 @@ void add_user(string key, string value) {
     HASH_FIND_STR(expressions, key, s);
     if (s == NULL) {
         s = (struct my_struct *)malloc(sizeof *s);
-        s->key = strdup(key);   // allocate memory for key
+        s->key = strdup(key);
         HASH_ADD_STR(expressions, key, s);
     }
-    s->value = strdup(value);   // allocate memory for value
+    s->value = strdup(value);
+    setenv(key, value, 1); // also set in real environment
 }
 
 
