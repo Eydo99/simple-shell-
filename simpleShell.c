@@ -6,5 +6,6 @@
 
 int main() {
     printf("welcome from main session\n");
+    printf("This is the end of the main session\n");
     return 0;
 }
