@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include<string.h>
 #include<signal.h>
+#include<uthash.h>
 
 #define string char*
 #define BUILTIN 1
@@ -17,6 +18,13 @@
 #define Exit 4
 
 
+
+struct my_struct {
+    string key;           
+    string value;
+    UT_hash_handle hh; /* makes this structure hashable */
+};
+struct my_struct *expressions = NULL;
 
 
 void setup_environment();
@@ -35,6 +43,8 @@ void evaluate_expression(char** args);
 void execute_export(char** args);
 void execute_cd(string args);
 void execute_echo(string args);
+void add_user(string key, string value);
+struct my_struct *find_user(string key);
 int exit_status=0;
 
 
@@ -51,7 +61,7 @@ int main() {
 //finished
 void setup_environment()
 {
-    chdir(getenv("HOME"));
+   // chdir(getenv("HOME"));
 }
 
 
@@ -87,7 +97,6 @@ void shell()
             case BUILTIN:
                 printf("builtin command detected\n"); //debugging line
                 execute_builtin(args);
-
                 break;
 
             case EXTERNAL:
@@ -106,27 +115,6 @@ void shell()
 
 
 
-
-//finished
-// char** parse_input()
-// {
-//     static char input[100];
-//     fgets(input, 100, stdin);
-//     input[strcspn(input, "\n")] = '\0';
-//     printf("you entered: %s\n", input); // debugging line
-
-//     static string args[100];
-//     string token = strtok(input, " ");
-//     int i=0;
-//     while (token !=NULL)
-//     {
-//         args[i] = token;
-//         i++;
-//         token = strtok(NULL, " ");
-//     }
-//     args[i] = NULL;
-//     return args;
-// }
 
 char** parse_input()
 {
@@ -176,6 +164,7 @@ char** parse_input()
 
 
 
+
 //finished
 int input_type(string cmd)
 {
@@ -184,6 +173,7 @@ int input_type(string cmd)
     else
         return EXTERNAL;
 }
+
 
 
 
@@ -206,6 +196,7 @@ int check_forground(char** cmd)
 
 
 
+
 //finished
 void execute_external(char** args)
 {
@@ -219,7 +210,10 @@ void execute_external(char** args)
     }
     else if (child_pid > 0 && check_forground(args) == foreground)
     {
-        waitpid(child_pid, NULL, 0);
+        int status;
+        waitpid(child_pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        printf("Error: command exited with status %d\n", WEXITSTATUS(status));
 
     }
 }
@@ -227,6 +221,7 @@ void execute_external(char** args)
 
 
 
+//finished
 void execute_builtin(char** args)
 {
     switch(builtin_commmand_type(args[0]))
@@ -310,7 +305,8 @@ int check_$(string arg)
 
 
 
-//finished
+
+//change to hash table later
 void evaluate_expression(char** args)
 {
     int i=1;
@@ -318,9 +314,9 @@ void evaluate_expression(char** args)
     {
         if (check_$(args[i]))
         {
-            string env_value = getenv(args[i]+1);
-            if (env_value != NULL)
-                args[i] = env_value;
+            string value = find_user(args[i]+1) ? find_user(args[i]+1)->value : NULL; // remove the $ and look up the value
+            if (value != NULL)
+                args[i] = value;
             else
                 args[i] = "";
         }
@@ -330,25 +326,33 @@ void evaluate_expression(char** args)
 }
 
 
+
+//change to hash table later
 void execute_export(char** args)
 {
     int j=1;
     while(args[j]!=NULL)
     {
         string token = strtok(args[j], "=");
-        string var_name = token;
+        string key = token;
         token = strtok(NULL, "=");
-        printf("exported %s with value %s\n", var_name, token); //debugging line
-        setenv(var_name, token, 1);
+        string value=token;
+        printf("exported %s with value %s\n", key, value); //debugging line
+        add_user(key, value);
         j++;
     }
 }
 
+
+
+//finished
 void execute_cd(string args)
 {
     if(args!= NULL && strcmp(args,"~") != 0)  chdir(args);
     else  chdir(getenv("HOME"));
 }
+
+
 
 void execute_echo(string args)
 {
@@ -359,5 +363,22 @@ void execute_echo(string args)
 
 
 
+void add_user(string key, string value) {
+    struct my_struct *s;
+
+    HASH_FIND_STR(expressions, key, s);
+    if (s == NULL) {
+        s = (struct my_struct *)malloc(sizeof *s);
+        s->key = strdup(key);   // allocate memory for key
+        HASH_ADD_STR(expressions, key, s);
+    }
+    s->value = strdup(value);   // allocate memory for value
+}
 
 
+struct my_struct *find_user(string key) {
+    struct my_struct *s;
+
+    HASH_FIND_STR( expressions,key, s );
+    return s;
+}
