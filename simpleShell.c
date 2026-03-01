@@ -46,6 +46,8 @@ void execute_cd(string args);
 void execute_echo(char** args);
 void add_expression(string key, string value);
 string find_expression(string key);
+char** input_echo(char** args, string dummy);
+char** input_export(char** args, string dummy);
 int exit_status=0;
 
 
@@ -117,73 +119,79 @@ void shell()
 
 
 
-//finished
-char** parse_input()
-{
+char** parse_input(){
+
     static char input[100];
     fgets(input, 100, stdin);
     input[strcspn(input, "\n")] = '\0';
-
+    string dummy=strdup(input);
     static string args[100];
-    int i = 0;
-    char* ptr = input;
+    string token = strtok(input, " ");
+    args[0] = token;
 
-    while (*ptr != '\0')
+        // if command is export split quoted args by space
+    if(strcmp(args[0], "export") == 0)
     {
-        // skip leading spaces
-        while (*ptr == ' ') ptr++;
-        if (*ptr == '\0') break;
+        return input_export(args, dummy);
 
-        args[i++] = ptr;
-        
-        while (*ptr != '\0')
-        {
-            if (*ptr == '"') // found a quote
-            {
-                // remove the opening quote by shifting
-                memmove(ptr, ptr + 1, strlen(ptr));
-                // now scan until closing quote
-                while (*ptr != '"' && *ptr != '\0') ptr++;
-                // remove closing quote
-                if (*ptr == '"') memmove(ptr, ptr + 1, strlen(ptr));
-            }
-            else if (*ptr == ' ') // end of token
-            {
-                *ptr++ = '\0';
-                break;
-            }
-            else
-            {
-                ptr++;
-            }
-        }
     }
-    args[i] = NULL;
-     // if command is echo, split quoted args by space
-    if (args[0] != NULL && (strcmp(args[0], "echo") == 0||strcmp(args[0], "ls") == 0))
+    else if(strcmp(args[0], "echo") == 0)
     {
-        static string echo_args[100];
-        echo_args[0] = args[0]; // keep "echo"
-        int k = 1;
-        int j = 1;
-        while (args[j] != NULL)
-        {
-            // split args[j] by spaces
-            char* token = strtok(args[j], " ");
-            while (token != NULL)
-            {
-                echo_args[k++] = token;
-                token = strtok(NULL, " ");
-            }
-            j++;
-        }
-        echo_args[k] = NULL;
-        return echo_args;
+         
+        return input_echo(args, dummy);
     }
-    
+
+    else{
+        int i = 1;
+        while(token != NULL)
+        {
+            token = strtok(NULL, " ");
+            args[i] = token;
+            i++;
+        }
+        args[i] = NULL;
+            i=0;
+        while(args[i]!=NULL)
+        {
+            printf("%s\n", args[i]);
+            i++;    
+        }
+        return args;
+    }
+
+
+}
+
+char** input_echo(char** args, string dummy)
+{
+    string begining=strchr(dummy,'"')+1;
+    begining[strlen(begining)-1]='\0';
+    string token=strtok(begining," ");
+   int j=1;
+    while(token!=NULL)
+    {
+        args[j]=token;
+        token=strtok(NULL," ");
+        j++;
+    }
+    args[j]=NULL;
+    j=0;
+    while(args[j]!=NULL)
+    {
+        printf("%s\n", args[j]);
+        j++;
+    }
     return args;
 }
 
+char** input_export(char** args, string dummy)
+{
+    string key=strchr(dummy,' ')+1;
+    args[1]=key;
+    args[2]=NULL;
+    printf("%s\n", key); //debugging line
+    return args;
+}
 
 
 
@@ -361,7 +369,13 @@ void execute_export(char** args)
         string token = strtok(args[j], "=");
         string key = token;
         token = strtok(NULL, "=");
-        string value=token;
+        string value;
+        if(strchr(token,' ')==NULL)  value=token;
+        else
+        {
+            value=token+1;
+            value[strlen(value)-1]='\0';
+        }
         printf("exported %s with value %s\n", key, value); //debugging line
         add_expression(key, value);
         j++;
