@@ -5,8 +5,8 @@
 #include <sys/wait.h>
 #include<string.h>
 #include<signal.h>
-#include<uthash.h>
 
+#define MAX_ENV_VARS 100
 #define string char*
 #define BUILTIN 1
 #define EXTERNAL 2
@@ -19,12 +19,13 @@
 
 
 
-struct my_struct {
-    string key;           
+typedef struct my_struct {
+    string key;
     string value;
-    UT_hash_handle hh; /* makes this structure hashable */
-};
-struct my_struct *expressions = NULL;
+} Expression;
+
+static Expression expression[MAX_ENV_VARS];
+int expression_count = 0; 
 
 
 void setup_environment();
@@ -43,12 +44,13 @@ void evaluate_expression(char** args);
 void execute_export(char** args);
 void execute_cd(string args);
 void execute_echo(char** args);
-void add_user(string key, string value);
-struct my_struct *find_user(string key);
+void add_expression(string key, string value);
+string find_expression(string key);
 int exit_status=0;
 
 
 
+//finished
 int main() {
     register_child_signal();
     setup_environment();
@@ -61,7 +63,7 @@ int main() {
 //finished
 void setup_environment()
 {
-   chdir(getenv("HOME"));
+   chdir("/");
 }
 
 
@@ -115,7 +117,7 @@ void shell()
 
 
 
-
+//finished
 char** parse_input()
 {
     static char input[100];
@@ -261,6 +263,7 @@ void execute_builtin(char** args)
             break;
 
         case Exit:
+
             exit_status=1;
             break;
     }
@@ -336,7 +339,7 @@ void evaluate_expression(char** args)
     {
         if (check_$(args[i]))
         {
-           string value = find_user(args[i]+1) ? find_user(args[i]+1)->value : getenv(args[i]+1);
+           string value = find_expression(args[i]+1); // skip the '$' character
             if (value != NULL)
                 args[i] = value;
             else
@@ -360,7 +363,7 @@ void execute_export(char** args)
         token = strtok(NULL, "=");
         string value=token;
         printf("exported %s with value %s\n", key, value); //debugging line
-        add_user(key, value);
+        add_expression(key, value);
         j++;
     }
 }
@@ -376,6 +379,7 @@ void execute_cd(string args)
 
 
 
+//finished
 void execute_echo(char** args)
 {
     int i=1;
@@ -390,24 +394,28 @@ void execute_echo(char** args)
 
 
 
-
-void add_user(string key, string value) {
-    struct my_struct *s;
-
-    HASH_FIND_STR(expressions, key, s);
-    if (s == NULL) {
-        s = (struct my_struct *)malloc(sizeof *s);
-        s->key = strdup(key);
-        HASH_ADD_STR(expressions, key, s);
+//finished
+void add_expression(string key, string value) {
+    if (expression_count < 100) {
+        //check duplicates
+        for (int i = 0; i < expression_count; i++) {
+            if (strcmp(expression[i].key, key) == 0) {
+               expression[i].value = strdup(value); // clear old value
+                return;
+            }
+        }
+        expression[expression_count].key = strdup(key);
+        expression[expression_count].value = strdup(value);
+        expression_count++;
     }
-    s->value = strdup(value);
-    setenv(key, value, 1); // also set in real environment
 }
 
-
-struct my_struct *find_user(string key) {
-    struct my_struct *s;
-
-    HASH_FIND_STR( expressions,key, s );
-    return s;
+//finished
+string find_expression(string key) {
+    for (int i = 0; i < expression_count; i++) {
+        if (strcmp(expression[i].key, key) == 0) {
+            return expression[i].value;
+        }
+    }
+    return NULL;
 }
