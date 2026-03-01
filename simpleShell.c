@@ -117,6 +117,7 @@ void shell()
 
 
 
+//finished
 char** parse_input()
 {
     static char input[100];
@@ -182,6 +183,7 @@ char** parse_input()
     
     return args;
 }
+
 
 
 
@@ -359,13 +361,7 @@ void execute_export(char** args)
         string token = strtok(args[j], "=");
         string key = token;
         token = strtok(NULL, "=");
-        string value;
-        if(strchr(token,' ')==NULL)  value=token;
-        else
-        {
-            value=token+1;
-            value[strlen(value)-1]='\0';
-        }
+        string value=token;
         printf("exported %s with value %s\n", key, value); //debugging line
         add_expression(key, value);
         j++;
