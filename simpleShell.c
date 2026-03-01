@@ -236,7 +236,20 @@ void execute_external(char** args)
     if (child_pid == 0)
     {
         remove_and(args);
-        execvp(args[0],args);
+       // re-split args by spaces
+        char* new_args[100];
+        int k = 0;
+        for(int j = 0; args[j] != NULL; j++)
+        {
+            char* token = strtok(args[j], " ");
+            while(token != NULL)
+            {
+                new_args[k++] = token;
+                token = strtok(NULL, " ");
+            }
+        }
+        new_args[k] = NULL;
+        execvp(new_args[0], new_args);
         perror("Error\n");
         exit(1);
     }
