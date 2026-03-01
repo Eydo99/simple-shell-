@@ -164,10 +164,14 @@ char** parse_input(){
 
 char** input_echo(char** args, string dummy)
 {
-    string begining=strchr(dummy,'"')+1;
-    begining[strlen(begining)-1]='\0';
+    string begining=strchr(dummy,' ')+1;
+    if (strchr(dummy,'"') !=NULL)
+    {
+        begining=strchr(dummy,'"')+1;
+        begining[strlen(begining)-1]='\0';
+    }
     string token=strtok(begining," ");
-   int j=1;
+    int j=1;
     while(token!=NULL)
     {
         args[j]=token;
